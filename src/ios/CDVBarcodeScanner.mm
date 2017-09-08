@@ -531,7 +531,9 @@ parentViewController:(UIViewController*)parentViewController
                                      AVMetadataObjectTypeCode93Code,
                                      AVMetadataObjectTypeCode39Code,
                                      AVMetadataObjectTypeITF14Code,
-                                     AVMetadataObjectTypePDF417Code]];
+                                     AVMetadataObjectTypePDF417Code,
+                                     AVMetadataObjectTypeInterleaved2of5Code
+                                     ]];
 
     // setup capture preview layer
     self.previewLayer = [AVCaptureVideoPreviewLayer layerWithSession:captureSession];
@@ -623,7 +625,8 @@ parentViewController:(UIViewController*)parentViewController
     if (format.type == AVMetadataObjectTypeCode128Code)     return @"CODE_128";
     if (format.type == AVMetadataObjectTypeCode93Code)      return @"CODE_93";
     if (format.type == AVMetadataObjectTypeCode39Code)      return @"CODE_39";
-    if (format.type == AVMetadataObjectTypeITF14Code)          return @"ITF";
+    if (format.type == AVMetadataObjectTypeITF14Code
+      || format.type == AVMetadataObjectTypeInterleaved2of5Code) return @"ITF";
     if (format.type == AVMetadataObjectTypePDF417Code)      return @"PDF_417";
     return @"???";
 }
