@@ -21,7 +21,6 @@
 //------------------------------------------------------------------------------
 @protocol CDVBarcodeScannerOrientationDelegate <NSObject>
 - (NSUInteger)supportedInterfaceOrientations;
-- (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation;
 - (BOOL)shouldAutorotate;
 @end
 
@@ -35,8 +34,6 @@
 @interface CDVBarcodeScanner : CDVPlugin {}
 - (NSString*)isScanNotPossible;
 - (void)scan:(CDVInvokedUrlCommand*)command;
-- (void)encode:(CDVInvokedUrlCommand*)command;
-- (void)returnImage:(NSString*)filePath format:(NSString*)format callback:(NSString*)callback;
 - (void)returnSuccess:(NSString*)scannedText format:(NSString*)format cancelled:(BOOL)cancelled callback:(NSString*)callback;
 - (void)returnError:(NSString*)message callback:(NSString*)callback;
 @end
@@ -54,7 +51,6 @@
 @property (nonatomic, retain) NSMutableArray*             results;
 @property (nonatomic, retain) NSString*                   formats;
 @property (nonatomic)         BOOL                        capturing;
-@property (nonatomic)         BOOL                        isFlipped;
 @property (nonatomic)         BOOL                        isTransitionAnimated;
 @property (nonatomic, retain) NSString*                   upperViewlabel;
 @property (nonatomic, retain) NSString*                   lowerViewlabel;
@@ -75,26 +71,11 @@
 @end
 
 //------------------------------------------------------------------------------
-// Qr encoder processor
-//------------------------------------------------------------------------------
-@interface CDVqrProcessor: NSObject
-@property (nonatomic, retain) CDVBarcodeScanner*          plugin;
-@property (nonatomic, retain) NSString*                   callback;
-@property (nonatomic, retain) NSString*                   stringToEncode;
-@property                     NSInteger                   size;
-
-- (id)initWithPlugin:(CDVBarcodeScanner*)plugin callback:(NSString*)callback stringToEncode:(NSString*)stringToEncode;
-- (void)generateImage;
-@end
-
-//------------------------------------------------------------------------------
 // view controller for the ui
 //------------------------------------------------------------------------------
 @interface CDVbcsViewController : UIViewController <CDVBarcodeScannerOrientationDelegate> {}
 @property (nonatomic, retain) CDVbcsProcessor*          processor;
 @property (nonatomic, retain) IBOutlet UIView*          overlayView;
-// unsafe_unretained is equivalent to assign - used to prevent retain cycles in the property below
-@property (nonatomic, unsafe_unretained) id             orientationDelegate;
 
 - (id)initWithProcessor:(CDVbcsProcessor*)processor;
 - (void)startCapturing;
@@ -121,13 +102,10 @@
     return result;
 }
 
--(BOOL)notHasPermission
-{
+- (BOOL)notHasPermission {
     AVAuthorizationStatus authStatus = [AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeVideo];
     return (authStatus == AVAuthorizationStatusDenied || authStatus == AVAuthorizationStatusRestricted);
 }
-
-
 
 //--------------------------------------------------------------------------
 - (void)scan:(CDVInvokedUrlCommand*)command {
@@ -139,9 +117,9 @@
 
     NSDictionary* options;
     if (command.arguments.count == 0) {
-      options = [NSDictionary dictionary];
+        options = [NSDictionary dictionary];
     } else {
-      options = command.arguments[0];
+        options = command.arguments[0];
     }
 
     BOOL disableAnimations = [options[@"disableAnimations"] boolValue];
@@ -180,62 +158,21 @@
 }
 
 //--------------------------------------------------------------------------
-- (void)encode:(CDVInvokedUrlCommand*)command {
-    if([command.arguments count] < 1)
-        [self returnError:@"Too few arguments!" callback:command.callbackId];
-
-    CDVqrProcessor* processor;
-    NSString*       callback;
-    callback = command.callbackId;
-
-    processor = [[CDVqrProcessor alloc] initWithPlugin:self callback:callback stringToEncode: command.arguments[0][@"data"]];
-
-    [processor retain];
-    [processor retain];
-    [processor retain];
-    // queue [processor generateImage] to run on the event loop
-    [processor performSelector:@selector(generateImage) withObject:nil afterDelay:0];
-}
-
-- (void)returnImage:(NSString*)filePath format:(NSString*)format callback:(NSString*)callback{
-    NSMutableDictionary* resultDict = [[[NSMutableDictionary alloc] init] autorelease];
-    resultDict[@"format"] = format;
-    resultDict[@"file"] = filePath;
-
-    CDVPluginResult* result = [CDVPluginResult
-                               resultWithStatus: CDVCommandStatus_OK
-                               messageAsDictionary:resultDict
-                               ];
-
-    [[self commandDelegate] sendPluginResult:result callbackId:callback];
-}
-
-//--------------------------------------------------------------------------
-- (void)returnSuccess:(NSString*)scannedText format:(NSString*)format cancelled:(BOOL)cancelled callback:(NSString*)callback{
-    NSNumber* cancelledNumber = @(cancelled ? 1 : 0);
-
+- (void)returnSuccess:(NSString*)scannedText format:(NSString*)format cancelled:(BOOL)cancelled callback:(NSString*)callback {
     NSMutableDictionary* resultDict = [[NSMutableDictionary new] autorelease];
     resultDict[@"text"] = scannedText;
     resultDict[@"format"] = format;
-    resultDict[@"cancelled"] = cancelledNumber;
+    resultDict[@"cancelled"] = @(cancelled ? 1 : 0);
 
-    CDVPluginResult* result = [CDVPluginResult
-                               resultWithStatus: CDVCommandStatus_OK
-                               messageAsDictionary: resultDict
-                               ];
+    CDVPluginResult* result = [CDVPluginResult resultWithStatus: CDVCommandStatus_OK messageAsDictionary: resultDict];
     [self.commandDelegate sendPluginResult:result callbackId:callback];
 }
 
 //--------------------------------------------------------------------------
 - (void)returnError:(NSString*)message callback:(NSString*)callback {
-    CDVPluginResult* result = [CDVPluginResult
-                               resultWithStatus: CDVCommandStatus_ERROR
-                               messageAsString: message
-                               ];
-
+    CDVPluginResult* result = [CDVPluginResult resultWithStatus: CDVCommandStatus_ERROR messageAsString: message];
     [self.commandDelegate sendPluginResult:result callbackId:callback];
 }
-
 @end
 
 //------------------------------------------------------------------------------
@@ -257,9 +194,9 @@
     self = [super init];
     if (!self) return self;
 
-    self.plugin               = plugin;
-    self.callback             = callback;
-    self.parentViewController = parentViewController;
+    self.plugin                 = plugin;
+    self.callback               = callback;
+    self.parentViewController   = parentViewController;
 
     self.capturing = NO;
     self.results = [[NSMutableArray new] autorelease];
@@ -288,9 +225,6 @@
 
 //--------------------------------------------------------------------------
 - (void)scanBarcode {
-
-//    self.captureSession = nil;
-//    self.previewLayer = nil;
     NSString* errorMessage = [self setUpCaptureSession];
     if (errorMessage) {
         [self barcodeScanFailed:errorMessage];
@@ -298,8 +232,6 @@
     }
 
     self.viewController = [[[CDVbcsViewController alloc] initWithProcessor: self] autorelease];
-    // here we set the orientation delegate to the MainViewController of the app (orientation controlled in the Project Settings)
-    self.viewController.orientationDelegate = self.plugin.viewController;
 
     // delayed [self openDialog];
     [self performSelector:@selector(openDialog) withObject:nil afterDelay:1];
@@ -307,10 +239,7 @@
 
 //--------------------------------------------------------------------------
 - (void)openDialog {
-    [self.parentViewController
-     presentViewController:self.viewController
-     animated:self.isTransitionAnimated completion:nil
-     ];
+    [self.parentViewController presentViewController:self.viewController animated:self.isTransitionAnimated completion:nil];
 }
 
 //--------------------------------------------------------------------------
@@ -319,8 +248,7 @@
     [self.captureSession stopRunning];
     [self.parentViewController dismissViewControllerAnimated:self.isTransitionAnimated completion:callbackBlock];
 
-    // viewcontroller holding onto a reference to us, release them so they
-    // will release us
+    // viewcontroller holding onto a reference to us, release them so they will release us
     self.viewController = nil;
 }
 
@@ -347,7 +275,6 @@
         if (![compareString isEqualToString:aResult])
         {
             allEqual = NO;
-            //NSLog(@"Did not fit: %@",self.results);
             break;
         }
     }
@@ -376,9 +303,6 @@
     [self barcodeScanDone:^{
         [self.plugin returnSuccess:@"" format:@"" cancelled:TRUE callback:self.callback];
     }];
-    if (self.isFlipped) {
-        self.isFlipped = NO;
-    }
 }
 
 //--------------------------------------------------------------------------
@@ -414,11 +338,11 @@
     [output setMetadataObjectsDelegate:self queue:dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0)];
 
     if ([captureSession canSetSessionPreset:AVCaptureSessionPresetHigh]) {
-      captureSession.sessionPreset = AVCaptureSessionPresetHigh;
+        captureSession.sessionPreset = AVCaptureSessionPresetHigh;
     } else if ([captureSession canSetSessionPreset:AVCaptureSessionPresetMedium]) {
-      captureSession.sessionPreset = AVCaptureSessionPresetMedium;
+        captureSession.sessionPreset = AVCaptureSessionPresetMedium;
     } else {
-      return @"unable to preset high nor medium quality video capture";
+        return @"unable to preset high nor medium quality video capture";
     }
 
     if ([captureSession canAddInput:input]) {
@@ -643,86 +567,6 @@
 
     return image;
 }
-
-@end
-
-//------------------------------------------------------------------------------
-// qr encoder processor
-//------------------------------------------------------------------------------
-@implementation CDVqrProcessor
-@synthesize plugin               = _plugin;
-@synthesize callback             = _callback;
-@synthesize stringToEncode       = _stringToEncode;
-@synthesize size                 = _size;
-
-- (id)initWithPlugin:(CDVBarcodeScanner*)plugin callback:(NSString*)callback stringToEncode:(NSString*)stringToEncode{
-    self = [super init];
-    if (!self) return self;
-
-    self.plugin          = plugin;
-    self.callback        = callback;
-    self.stringToEncode  = stringToEncode;
-    self.size            = 300;
-
-    return self;
-}
-
-//--------------------------------------------------------------------------
-- (void)dealloc {
-    self.plugin = nil;
-    self.callback = nil;
-    self.stringToEncode = nil;
-
-    [super dealloc];
-}
-//--------------------------------------------------------------------------
-- (void)generateImage{
-    /* setup qr filter */
-    CIFilter *filter = [CIFilter filterWithName:@"CIQRCodeGenerator"];
-    [filter setDefaults];
-
-    /* set filter's input message
-     * the encoding string has to be convert to a UTF-8 encoded NSData object */
-    [filter setValue:[self.stringToEncode dataUsingEncoding:NSUTF8StringEncoding]
-              forKey:@"inputMessage"];
-
-    /* on ios >= 7.0  set low image error correction level */
-    if (floor(NSFoundationVersionNumber) >= NSFoundationVersionNumber_iOS_7_0)
-        [filter setValue:@"L" forKey:@"inputCorrectionLevel"];
-
-    /* prepare cgImage */
-    CIImage *outputImage = [filter outputImage];
-    CIContext *context = [CIContext contextWithOptions:nil];
-    CGImageRef cgImage = [context createCGImage:outputImage
-                                       fromRect:[outputImage extent]];
-
-    /* returned qr code image */
-    UIImage *qrImage = [UIImage imageWithCGImage:cgImage
-                                           scale:1.
-                                     orientation:UIImageOrientationUp];
-    /* resize generated image */
-    CGFloat width = _size;
-    CGFloat height = _size;
-
-    UIGraphicsBeginImageContext(CGSizeMake(width, height));
-
-    CGContextRef ctx = UIGraphicsGetCurrentContext();
-    CGContextSetInterpolationQuality(ctx, kCGInterpolationNone);
-    [qrImage drawInRect:CGRectMake(0, 0, width, height)];
-    qrImage = UIGraphicsGetImageFromCurrentImageContext();
-
-    /* clean up */
-    UIGraphicsEndImageContext();
-    CGImageRelease(cgImage);
-
-    /* save image to file */
-    NSString* fileName = [[[NSProcessInfo processInfo] globallyUniqueString] stringByAppendingString:@".jpg"];
-    NSString* filePath = [NSTemporaryDirectory() stringByAppendingPathComponent:fileName];
-    [UIImageJPEGRepresentation(qrImage, 1.0) writeToFile:filePath atomically:YES];
-
-    /* return file path back to cordova */
-    [self.plugin returnImage:filePath format:@"QR_CODE" callback: self.callback];
-}
 @end
 
 //------------------------------------------------------------------------------
@@ -770,13 +614,8 @@
 
 //--------------------------------------------------------------------------
 - (void)viewWillAppear:(BOOL)animated {
-
     // set video orientation to what the camera sees
     self.processor.previewLayer.connection.videoOrientation = (AVCaptureVideoOrientation) [[UIApplication sharedApplication] statusBarOrientation];
-
-    // this fixes the bug when the statusbar is landscape, and the preview layer
-    // starts up in portrait (not filling the whole view)
-    self.processor.previewLayer.frame = self.view.bounds;
 }
 
 //--------------------------------------------------------------------------
@@ -811,33 +650,14 @@
     CGFloat rootViewHeight  = CGRectGetHeight(bounds);
     CGFloat rootViewWidth   = CGRectGetWidth(bounds);
     CGFloat rectHeight      = rootViewHeight/4;
-    CGRect  rectArea        = CGRectMake(0, rectHeight, rootViewWidth, rectHeight*2);
 
+    // barcode scanner area
     UIImage* reticleImage   = [self buildReticleImageWithWidth: rootViewWidth andHeight: rectHeight * 2];
-    UIView* reticleView     = [[[UIImageView alloc] initWithImage:reticleImage] autorelease];
-    CGFloat minAxis         = MIN(rootViewHeight, rootViewWidth);
-
-    rectArea = CGRectMake(
-        (CGFloat) (0.5 * (rootViewWidth  - minAxis)),
-        (CGFloat) (0.5 * (rootViewHeight - minAxis)),
-        minAxis,
-        minAxis
-    );
-
+    UIView*  reticleView    = [[[UIImageView alloc] initWithImage:reticleImage] autorelease];
+    CGRect   rectArea       = CGRectMake(0, rectHeight, rootViewWidth, rectHeight*2);
     [reticleView setFrame:rectArea];
 
-    reticleView.opaque           = NO;
-    reticleView.contentMode      = UIViewContentModeScaleAspectFit;
-    reticleView.autoresizingMask = (UIViewAutoresizing) (0
-        | UIViewAutoresizingFlexibleLeftMargin
-        | UIViewAutoresizingFlexibleRightMargin
-        | UIViewAutoresizingFlexibleTopMargin
-        | UIViewAutoresizingFlexibleBottomMargin)
-    ;
-
-    [overlayView addSubview: reticleView];
-
-    // custom scanner style
+    // custom scanner ui
     CGRect upperViewRect = CGRectMake(0, 0, rootViewWidth, rectHeight);
     CGRect lowerViewRect = CGRectMake(0, rootViewHeight - rectHeight, rootViewWidth, rectHeight);
 
@@ -867,7 +687,7 @@
     UIView* lowerButtonView = [[UIView alloc] initWithFrame:lowerViewRect];
     UILabel* cancelButtonLabel = [[UILabel alloc] initWithFrame:CGRectMake(labelPadding / 2, rectHeight / 2, labelWidth, 50)];
     cancelButtonLabel.backgroundColor = UIColor.whiteColor;
-    cancelButtonLabel.text = _processor.cancelButtonlabel;//@"Cancel";
+    cancelButtonLabel.text = _processor.cancelButtonlabel;
     cancelButtonLabel.textAlignment = NSTextAlignmentCenter;
     cancelButtonLabel.userInteractionEnabled = YES;
     cancelButtonLabel.layer.cornerRadius = 6;
@@ -880,6 +700,7 @@
     [overlayView addSubview: upperView];
     [overlayView addSubview: lowerView];
     [overlayView addSubview: lowerButtonView];
+    [overlayView addSubview: reticleView];
 
     return overlayView;
 }
@@ -939,49 +760,15 @@
 }
 
 #pragma mark CDVBarcodeScannerOrientationDelegate
-
 - (BOOL)shouldAutorotate
 {
-    return YES;
-}
-
-- (UIInterfaceOrientation)preferredInterfaceOrientationForPresentation
-{
-    return [[UIApplication sharedApplication] statusBarOrientation];
+    return NO;
 }
 
 - (NSUInteger)supportedInterfaceOrientations
 {
-    return UIInterfaceOrientationMaskAll;
-}
-
-- (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
-{
-    if ((self.orientationDelegate != nil) && [self.orientationDelegate respondsToSelector:@selector(shouldAutorotateToInterfaceOrientation:)]) {
-        return [self.orientationDelegate shouldAutorotateToInterfaceOrientation:interfaceOrientation];
-    }
-
-    return YES;
-}
-
-- (void) willAnimateRotationToInterfaceOrientation:(UIInterfaceOrientation)orientation duration:(NSTimeInterval)duration
-{
-    [UIView setAnimationsEnabled:NO];
-    AVCaptureVideoPreviewLayer* previewLayer = self.processor.previewLayer;
-    previewLayer.frame = self.view.bounds;
-
-    if (orientation == UIInterfaceOrientationLandscapeLeft) {
-        [previewLayer setOrientation:AVCaptureVideoOrientationLandscapeLeft];
-    } else if (orientation == UIInterfaceOrientationLandscapeRight) {
-        [previewLayer setOrientation:AVCaptureVideoOrientationLandscapeRight];
-    } else if (orientation == UIInterfaceOrientationPortrait) {
-        [previewLayer setOrientation:AVCaptureVideoOrientationPortrait];
-    } else if (orientation == UIInterfaceOrientationPortraitUpsideDown) {
-        [previewLayer setOrientation:AVCaptureVideoOrientationPortraitUpsideDown];
-    }
-
-    previewLayer.videoGravity = AVLayerVideoGravityResizeAspectFill;
-    [UIView setAnimationsEnabled:YES];
+    return UIInterfaceOrientationMaskPortrait;
 }
 
 @end
+
