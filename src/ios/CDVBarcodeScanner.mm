@@ -171,9 +171,9 @@
     BOOL disableAnimations = [options[@"disableAnimations"] boolValue];
     BOOL disableSuccessBeep = [options[@"disableSuccessBeep"] boolValue];
 
-    NSString *upperViewlabel = [options[@"upperViewlabel"] stringValue];
-    NSString *lowerViewlabel = [options[@"lowerViewlabel"] stringValue];
-    NSString *cancelButtonlabel = [options[@"cancelButtonlabel"] stringValue];
+    NSString *upperViewlabel = options[@"upperViewlabel"];
+    NSString *lowerViewlabel = options[@"lowerViewlabel"];
+    NSString *cancelButtonlabel = options[@"cancelButtonlabel"];
 
     // We allow the user to define an alternate xib file for loading the overlay.
     NSString *overlayXib = options[@"overlayXib"];
