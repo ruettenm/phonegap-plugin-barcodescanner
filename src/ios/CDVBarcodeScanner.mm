@@ -63,9 +63,8 @@
 - (void)barcodeScanCancelled;
 - (void)openDialog;
 - (NSString*)setUpCaptureSession;
-- (void)captureOutput:(AVCaptureOutput*)captureOutput didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection*)connection;
+- (void)captureOutput:(AVCaptureOutput *)captureOutput didOutputMetadataObjects:(NSArray *)metadataObjects fromConnection:(AVCaptureConnection *)connection;
 - (NSString*)formatStringFrom:(zxing::BarcodeFormat)format;
-- (UIImage*)getImageFromSample:(CMSampleBufferRef)sampleBuffer;
 @end
 
 //------------------------------------------------------------------------------
@@ -231,7 +230,6 @@
 
     self.viewController = [[[CDVbcsViewController alloc] initWithProcessor: self] autorelease];
 
-    // delayed [self openDialog];
     [self performSelector:@selector(openDialog) withObject:nil afterDelay:1];
 }
 
@@ -384,8 +382,7 @@
 //--------------------------------------------------------------------------
 // this method gets sent the captured frames
 //--------------------------------------------------------------------------
-- (void)captureOutput:(AVCaptureOutput*)captureOutput didOutputMetadataObjects:(NSArray *)metadataObjects fromConnection:(AVCaptureConnection*)connection {
-
+- (void)captureOutput:(AVCaptureOutput *)captureOutput didOutputMetadataObjects:(NSArray *)metadataObjects fromConnection:(AVCaptureConnection *)connection {
     if (!self.capturing) return;
 
     try {
@@ -402,10 +399,6 @@
         //            NSLog(@"decoding: unknown exception");
         //            [self barcodeScanFailed:@"unknown exception decoding barcode"];
     }
-
-    //        NSTimeInterval timeElapsed  = [NSDate timeIntervalSinceReferenceDate] - timeStart;
-    //        NSLog(@"decoding completed in %dms", (int) (timeElapsed * 1000));
-
 }
 
 //--------------------------------------------------------------------------
@@ -513,65 +506,63 @@
 
 //--------------------------------------------------------------------------
 - (UIView*)buildOverlayView {
-    CGRect bounds = self.view.bounds;
-    bounds = CGRectMake(0, 0, bounds.size.width, bounds.size.height);
+    CGRect bounds                   = CGRectMake(0, 0, self.view.bounds.size.width, self.view.bounds.size.height);
 
-    UIView* overlayView = [[UIView alloc] initWithFrame:bounds];
+    UIView* overlayView             = [[UIView alloc] initWithFrame:bounds];
     overlayView.autoresizesSubviews = YES;
     overlayView.autoresizingMask    = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     overlayView.opaque              = NO;
 
     bounds = overlayView.bounds;
 
-    CGFloat rootViewHeight  = CGRectGetHeight(bounds);
-    CGFloat rootViewWidth   = CGRectGetWidth(bounds);
-    CGFloat rectHeight      = rootViewHeight/4;
+    CGFloat rootViewHeight          = CGRectGetHeight(bounds);
+    CGFloat rootViewWidth           = CGRectGetWidth(bounds);
+    CGFloat rectHeight              = rootViewHeight / 4;
 
     // barcode scanner area
-    UIImage* reticleImage   = [self buildReticleImageWithWidth: rootViewWidth andHeight: rectHeight * 2];
-    UIView*  reticleView    = [[[UIImageView alloc] initWithImage:reticleImage] autorelease];
-    CGRect   rectArea       = CGRectMake(0, rectHeight, rootViewWidth, rectHeight*2);
+    UIImage* reticleImage           = [self buildReticleImageWithWidth: rootViewWidth andHeight: rectHeight * 2];
+    UIView*  reticleView            = [[[UIImageView alloc] initWithImage:reticleImage] autorelease];
+    CGRect   rectArea               = CGRectMake(0, rectHeight, rootViewWidth, rectHeight*2);
     [reticleView setFrame:rectArea];
 
     // custom scanner ui
-    CGRect upperViewRect = CGRectMake(0, 0, rootViewWidth, rectHeight);
-    CGRect lowerViewRect = CGRectMake(0, rootViewHeight - rectHeight, rootViewWidth, rectHeight);
+    CGRect upperViewRect            = CGRectMake(0, 0, rootViewWidth, rectHeight);
+    CGRect lowerViewRect            = CGRectMake(0, rootViewHeight - rectHeight, rootViewWidth, rectHeight);
 
-    CGFloat labelPadding = 50;
-    CGFloat labelWidth = rootViewWidth - labelPadding;
-    UIView* upperView = [[UIView alloc] initWithFrame:upperViewRect];
-    upperView.backgroundColor = UIColor.blackColor;
-    upperView.alpha = 0.70;
-    UILabel* upperViewlabel = [[UILabel alloc] initWithFrame:CGRectMake(labelPadding/2, 0, labelWidth, upperView.bounds.size.height)];
-    upperViewlabel.text = _processor.upperViewlabel;
-    upperViewlabel.font = [UIFont systemFontOfSize: 22];
-    upperViewlabel.textColor = UIColor.whiteColor;
-    upperViewlabel.textAlignment = NSTextAlignmentCenter;
-    upperViewlabel.numberOfLines = 2;
+    CGFloat labelPadding            = 50;
+    CGFloat labelWidth              = rootViewWidth - labelPadding;
+    UIView* upperView               = [[UIView alloc] initWithFrame:upperViewRect];
+    upperView.backgroundColor       = UIColor.blackColor;
+    upperView.alpha                 = 0.70;
+    UILabel* upperViewlabel         = [[UILabel alloc] initWithFrame:CGRectMake(labelPadding / 2, 0, labelWidth, upperView.bounds.size.height)];
+    upperViewlabel.text             = _processor.upperViewlabel;
+    upperViewlabel.font             = [UIFont systemFontOfSize: 22];
+    upperViewlabel.textColor        = UIColor.whiteColor;
+    upperViewlabel.textAlignment    = NSTextAlignmentCenter;
+    upperViewlabel.numberOfLines    = 2;
     [upperView addSubview: upperViewlabel];
 
-    UIView* lowerView = [[UIView alloc] initWithFrame:lowerViewRect];
-    lowerView.backgroundColor = UIColor.blackColor;
-    lowerView.alpha = 0.70;
-    UILabel* lowerViewlabel = [[UILabel alloc] initWithFrame:CGRectMake(labelPadding/2, 0, labelWidth, lowerView.bounds.size.height / 2)];
-    lowerViewlabel.text = _processor.lowerViewlabel;
-    lowerViewlabel.textColor = UIColor.whiteColor;
-    lowerViewlabel.textAlignment = NSTextAlignmentCenter;
-    lowerViewlabel.numberOfLines = 2;
+    UIView* lowerView               = [[UIView alloc] initWithFrame:lowerViewRect];
+    lowerView.backgroundColor       = UIColor.blackColor;
+    lowerView.alpha                 = 0.70;
+    UILabel* lowerViewlabel         = [[UILabel alloc] initWithFrame:CGRectMake(labelPadding / 2, 0, labelWidth, lowerView.bounds.size.height / 2)];
+    lowerViewlabel.text             = _processor.lowerViewlabel;
+    lowerViewlabel.textColor        = UIColor.whiteColor;
+    lowerViewlabel.textAlignment    = NSTextAlignmentCenter;
+    lowerViewlabel.numberOfLines    = 2;
     [lowerView addSubview: lowerViewlabel];
 
-    UIView* lowerButtonView = [[UIView alloc] initWithFrame:lowerViewRect];
-    UILabel* cancelButtonLabel = [[UILabel alloc] initWithFrame:CGRectMake(labelPadding / 2, rectHeight / 2, labelWidth, 50)];
-    cancelButtonLabel.backgroundColor = UIColor.whiteColor;
-    cancelButtonLabel.text = _processor.cancelButtonlabel;
-    cancelButtonLabel.textAlignment = NSTextAlignmentCenter;
-    cancelButtonLabel.userInteractionEnabled = YES;
-    cancelButtonLabel.layer.cornerRadius = 6;
-    cancelButtonLabel.clipsToBounds = YES;
-    UITapGestureRecognizer *tapGesture =
-    [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(cancelButtonPressed:)];
-    [cancelButtonLabel addGestureRecognizer:tapGesture];
-    [lowerButtonView addSubview:cancelButtonLabel];
+    UIView* lowerButtonView             = [[UIView alloc] initWithFrame:lowerViewRect];
+    UILabel* cancelButton               = [[UILabel alloc] initWithFrame:CGRectMake(labelPadding / 2, rectHeight / 2, labelWidth, 50)];
+    cancelButton.backgroundColor        = UIColor.whiteColor;
+    cancelButton.text                   = _processor.cancelButtonlabel;
+    cancelButton.textAlignment          = NSTextAlignmentCenter;
+    cancelButton.userInteractionEnabled = YES;
+    cancelButton.layer.cornerRadius     = 6;
+    cancelButton.clipsToBounds          = YES;
+    UITapGestureRecognizer *tapGesture  = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(cancelButtonPressed:)];
+    [cancelButton addGestureRecognizer:tapGesture];
+    [lowerButtonView addSubview:cancelButton];
 
     [overlayView addSubview: upperView];
     [overlayView addSubview: lowerView];
@@ -647,4 +638,3 @@
 }
 
 @end
-
