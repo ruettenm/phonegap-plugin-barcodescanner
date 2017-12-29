@@ -68,6 +68,9 @@
 @property (nonatomic)         BOOL                        isFrontCamera;
 @property (nonatomic)         BOOL                        isShowFlipCameraButton;
 @property (nonatomic)         BOOL                        isShowTorchButton;
+@property (nonatomic, retain) NSString*                   upperViewlabel;
+@property (nonatomic, retain) NSString*                   lowerViewlabel;
+@property (nonatomic, retain) NSString*                   cancelButtonlabel;
 @property (nonatomic)         BOOL                        isFlipped;
 @property (nonatomic)         BOOL                        isTransitionAnimated;
 @property (nonatomic)         BOOL                        isSuccessBeepEnabled;
@@ -115,7 +118,7 @@
 - (id)initWithProcessor:(CDVbcsProcessor*)processor alternateOverlay:(NSString *)alternateXib;
 - (void)startCapturing;
 - (UIView*)buildOverlayView;
-- (UIImage*)buildReticleImage;
+- (UIImage*)buildReticleImageWithWidth;
 - (void)shutterButtonPressed;
 - (IBAction)cancelButtonPressed:(id)sender;
 
@@ -168,6 +171,10 @@
     BOOL disableAnimations = [options[@"disableAnimations"] boolValue];
     BOOL disableSuccessBeep = [options[@"disableSuccessBeep"] boolValue];
 
+    NSString *upperViewlabel = [options[@"upperViewlabel"] stringValue];
+    NSString *lowerViewlabel = [options[@"lowerViewlabel"] stringValue];
+    NSString *cancelButtonlabel = [options[@"cancelButtonlabel"] stringValue];
+
     // We allow the user to define an alternate xib file for loading the overlay.
     NSString *overlayXib = options[@"overlayXib"];
 
@@ -199,6 +206,16 @@
 
     if (showTorchButton) {
       processor.isShowTorchButton = true;
+    }
+
+    if (upperViewlabel) {
+        processor.upperViewlabel = upperViewlabel;
+    }
+    if (lowerViewlabel) {
+        processor.lowerViewlabel = lowerViewlabel;
+    }
+    if (cancelButtonlabel) {
+        processor.cancelButtonlabel = cancelButtonlabel;
     }
 
     processor.isSuccessBeepEnabled = !disableSuccessBeep;
@@ -309,6 +326,10 @@ parentViewController:(UIViewController*)parentViewController
     self.is2D      = YES;
     self.capturing = NO;
     self.results = [[NSMutableArray new] autorelease];
+
+    self.upperViewlabel = @"Center barcode on your card between the corners";
+    self.lowerViewlabel = @"Barcode will scan automatically.\nTry to avoid shadows and glare.";
+    self.cancelButtonlabel = @"Cancel";
 
     CFURLRef soundFileURLRef  = CFBundleCopyResourceURL(CFBundleGetMainBundle(), CFSTR("CDVBarcodeScanner.bundle/beep"), CFSTR ("caf"), NULL);
     AudioServicesCreateSystemSoundID(soundFileURLRef, &_soundFileObject);
@@ -971,83 +992,14 @@ parentViewController:(UIViewController*)parentViewController
     overlayView.autoresizingMask    = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     overlayView.opaque              = NO;
 
-    UIToolbar* toolbar = [[UIToolbar alloc] init];
-    toolbar.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleTopMargin;
-
-    id cancelButton = [[[UIBarButtonItem alloc]
-                       initWithBarButtonSystemItem:UIBarButtonSystemItemCancel
-                       target:(id)self
-                       action:@selector(cancelButtonPressed:)
-                       ] autorelease];
-
-
-    id flexSpace = [[[UIBarButtonItem alloc]
-                    initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace
-                    target:nil
-                    action:nil
-                    ] autorelease];
-
-    id flipCamera = [[[UIBarButtonItem alloc]
-                       initWithBarButtonSystemItem:UIBarButtonSystemItemCamera
-                       target:(id)self
-                       action:@selector(flipCameraButtonPressed:)
-                       ] autorelease];
-
-    NSMutableArray *items;
-
-#if USE_SHUTTER
-    id shutterButton = [[[UIBarButtonItem alloc]
-                        initWithBarButtonSystemItem:UIBarButtonSystemItemCamera
-                        target:(id)self
-                        action:@selector(shutterButtonPressed)
-                        ] autorelease];
-
-    if (_processor.isShowFlipCameraButton) {
-      items = [NSMutableArray arrayWithObjects:flexSpace, cancelButton, flexSpace, flipCamera, shutterButton, nil];
-    } else {
-      items = [NSMutableArray arrayWithObjects:flexSpace, cancelButton, flexSpace, shutterButton, nil];
-    }
-#else
-    if (_processor.isShowFlipCameraButton) {
-      items = [@[flexSpace, cancelButton, flexSpace, flipCamera] mutableCopy];
-    } else {
-      items = [@[flexSpace, cancelButton, flexSpace] mutableCopy];
-    }
-#endif
-
-    if (_processor.isShowTorchButton && !_processor.isFrontCamera) {
-      AVCaptureDevice *device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
-      if ([device hasTorch] && [device hasFlash]) {
-        NSURL *bundleURL = [[NSBundle mainBundle] URLForResource:@"CDVBarcodeScanner" withExtension:@"bundle"];
-        NSBundle *bundle = [NSBundle bundleWithURL:bundleURL];
-        NSString *imagePath = [bundle pathForResource:@"torch" ofType:@"png"];
-        UIImage *image = [UIImage imageWithContentsOfFile:imagePath];
-
-        id torchButton = [[[UIBarButtonItem alloc]
-                           initWithImage:image
-                                   style:UIBarButtonItemStylePlain
-                                  target:(id)self
-                                  action:@selector(torchButtonPressed:)
-                           ] autorelease];
-
-      [items insertObject:torchButton atIndex:0];
-    }
-  }
-
-    toolbar.items = items;
-
     bounds = overlayView.bounds;
 
-    [toolbar sizeToFit];
-    CGFloat toolbarHeight  = [toolbar frame].size.height;
     CGFloat rootViewHeight = CGRectGetHeight(bounds);
     CGFloat rootViewWidth  = CGRectGetWidth(bounds);
-    CGRect  rectArea       = CGRectMake(0, rootViewHeight - toolbarHeight, rootViewWidth, toolbarHeight);
-    [toolbar setFrame:rectArea];
+    CGFloat rectHeight     = rootViewHeight/4;
+    CGRect  rectArea       = CGRectMake(0, rectHeight, rootViewWidth, rectHeight*2);
 
-    [overlayView addSubview: toolbar];
-
-    UIImage* reticleImage = [self buildReticleImage];
+    UIImage* reticleImage = [self buildReticleImageWithWidth: rootViewWidth andHeight: rectHeight * 2];
     UIView* reticleView = [[[UIImageView alloc] initWithImage:reticleImage] autorelease];
     CGFloat minAxis = MIN(rootViewHeight, rootViewWidth);
 
@@ -1071,51 +1023,108 @@ parentViewController:(UIViewController*)parentViewController
 
     [overlayView addSubview: reticleView];
 
+    // custom scanner style
+    CGRect upperViewRect = CGRectMake(0, 0, rootViewWidth, rectHeight);
+    CGRect lowerViewRect = CGRectMake(0, rootViewHeight - rectHeight, rootViewWidth, rectHeight);
+
+    CGFloat labelPadding = 50;
+    CGFloat labelWidth = rootViewWidth - labelPadding;
+    UIView* upperView = [[UIView alloc] initWithFrame:upperViewRect];
+    upperView.backgroundColor = UIColor.blackColor;
+    upperView.alpha = 0.70;
+    UILabel* upperViewlabel = [[UILabel alloc] initWithFrame:CGRectMake(labelPadding/2, 0, labelWidth, upperView.bounds.size.height)];
+    upperViewlabel.text = _processor.upperViewlabel;
+    upperViewlabel.font = [UIFont systemFontOfSize: 22];
+    upperViewlabel.textColor = UIColor.whiteColor;
+    upperViewlabel.textAlignment = NSTextAlignmentCenter;
+    upperViewlabel.numberOfLines = 2;
+    [upperView addSubview: upperViewlabel];
+
+    UIView* lowerView = [[UIView alloc] initWithFrame:lowerViewRect];
+    lowerView.backgroundColor = UIColor.blackColor;
+    lowerView.alpha = 0.70;
+    UILabel* lowerViewlabel = [[UILabel alloc] initWithFrame:CGRectMake(labelPadding/2, 0, labelWidth, lowerView.bounds.size.height / 2)];
+    lowerViewlabel.text = _processor.lowerViewlabel;
+    lowerViewlabel.textColor = UIColor.whiteColor;
+    lowerViewlabel.textAlignment = NSTextAlignmentCenter;
+    lowerViewlabel.numberOfLines = 2;
+    [lowerView addSubview: lowerViewlabel];
+
+    UIView* lowerButtonView = [[UIView alloc] initWithFrame:lowerViewRect];
+    UILabel* cancelButtonLabel = [[UILabel alloc] initWithFrame:CGRectMake(labelPadding / 2, rectHeight / 2, labelWidth, 50)];
+    cancelButtonLabel.backgroundColor = UIColor.whiteColor;
+    cancelButtonLabel.text = _processor.cancelButtonlabel;//@"Cancel";
+    cancelButtonLabel.textAlignment = NSTextAlignmentCenter;
+    cancelButtonLabel.userInteractionEnabled = YES;
+    cancelButtonLabel.layer.cornerRadius = 6;
+    cancelButtonLabel.clipsToBounds = YES;
+    UITapGestureRecognizer *tapGesture =
+    [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(cancelButtonPressed:)];
+    [cancelButtonLabel addGestureRecognizer:tapGesture];
+    [lowerButtonView addSubview:cancelButtonLabel];
+
+    [overlayView addSubview: upperView];
+    [overlayView addSubview: lowerView];
+    [overlayView addSubview: lowerButtonView];
+
     return overlayView;
 }
 
+
 //--------------------------------------------------------------------------
 
-#define RETICLE_SIZE    500.0f
-#define RETICLE_WIDTH    10.0f
-#define RETICLE_OFFSET   60.0f
-#define RETICLE_ALPHA     0.4f
+#define LINE_SIZE           40.0f
+#define LINE_STROKE_WIDTH   2.0f
+#define PADDING_RIGHT_LEFT  50.0f
+#define PADDING_TOP_BOTTOM  PADDING_RIGHT_LEFT * 2
+#define ALPHA               1.0f
 
 //-------------------------------------------------------------------------
-// builds the green box and red line
+// builds yellow box
 //-------------------------------------------------------------------------
-- (UIImage*)buildReticleImage {
+- (UIImage*)buildReticleImageWithWidth: (CGFloat)width andHeight: (CGFloat) height {
     UIImage* result;
-    UIGraphicsBeginImageContext(CGSizeMake(RETICLE_SIZE, RETICLE_SIZE));
+    UIGraphicsBeginImageContext(CGSizeMake(width, height));
     CGContextRef context = UIGraphicsGetCurrentContext();
 
-    if (self.processor.is1D) {
-        UIColor* color = [UIColor colorWithRed:1.0 green:0.0 blue:0.0 alpha:RETICLE_ALPHA];
-        CGContextSetStrokeColorWithColor(context, color.CGColor);
-        CGContextSetLineWidth(context, RETICLE_WIDTH);
-        CGContextBeginPath(context);
-        CGFloat lineOffset = (CGFloat) (RETICLE_OFFSET+(0.5*RETICLE_WIDTH));
-        CGContextMoveToPoint(context, lineOffset, RETICLE_SIZE/2);
-        CGContextAddLineToPoint(context, RETICLE_SIZE-lineOffset, (CGFloat) (0.5*RETICLE_SIZE));
-        CGContextStrokePath(context);
-    }
+    UIColor* color = [UIColor colorWithRed:0.99 green:0.89 blue:0.00 alpha:ALPHA];
+    CGContextSetStrokeColorWithColor(context, color.CGColor);
+    CGContextSetLineWidth(context, LINE_STROKE_WIDTH);
+    CGContextBeginPath(context);
 
-    if (self.processor.is2D) {
-        UIColor* color = [UIColor colorWithRed:0.0 green:1.0 blue:0.0 alpha:RETICLE_ALPHA];
-        CGContextSetStrokeColorWithColor(context, color.CGColor);
-        CGContextSetLineWidth(context, RETICLE_WIDTH);
-        CGContextStrokeRect(context,
-                            CGRectMake(
-                                       RETICLE_OFFSET,
-                                       RETICLE_OFFSET,
-                                       RETICLE_SIZE-2*RETICLE_OFFSET,
-                                       RETICLE_SIZE-2*RETICLE_OFFSET
-                                       )
-                            );
-    }
+    // top left
+    CGContextMoveToPoint(context, PADDING_RIGHT_LEFT, PADDING_TOP_BOTTOM);
+    CGContextAddLineToPoint(context, PADDING_RIGHT_LEFT, PADDING_TOP_BOTTOM + LINE_SIZE);
+
+    CGContextMoveToPoint(context, PADDING_RIGHT_LEFT, PADDING_TOP_BOTTOM);
+    CGContextAddLineToPoint(context, PADDING_RIGHT_LEFT + LINE_SIZE, PADDING_TOP_BOTTOM);
+
+    // top right
+    CGContextMoveToPoint(context, width - PADDING_RIGHT_LEFT, PADDING_TOP_BOTTOM);
+    CGContextAddLineToPoint(context, width - PADDING_RIGHT_LEFT, PADDING_TOP_BOTTOM + LINE_SIZE);
+
+    CGContextMoveToPoint(context, width - PADDING_RIGHT_LEFT, PADDING_TOP_BOTTOM);
+    CGContextAddLineToPoint(context, width - PADDING_RIGHT_LEFT - LINE_SIZE, PADDING_TOP_BOTTOM);
+
+    // bottom right
+    CGContextMoveToPoint(context, width - PADDING_RIGHT_LEFT, height - PADDING_TOP_BOTTOM);
+    CGContextAddLineToPoint(context, width - PADDING_RIGHT_LEFT, height - PADDING_TOP_BOTTOM - LINE_SIZE);
+
+    CGContextMoveToPoint(context, width - PADDING_RIGHT_LEFT, height - PADDING_TOP_BOTTOM);
+    CGContextAddLineToPoint(context, width - PADDING_RIGHT_LEFT - LINE_SIZE, height - PADDING_TOP_BOTTOM);
+
+    // bottom left
+    CGContextMoveToPoint(context, PADDING_RIGHT_LEFT, height - PADDING_TOP_BOTTOM);
+    CGContextAddLineToPoint(context, PADDING_RIGHT_LEFT, height - PADDING_TOP_BOTTOM - LINE_SIZE);
+
+    CGContextMoveToPoint(context, PADDING_RIGHT_LEFT, height - PADDING_TOP_BOTTOM);
+    CGContextAddLineToPoint(context, PADDING_RIGHT_LEFT + LINE_SIZE, height - PADDING_TOP_BOTTOM);
+
+    CGContextStrokePath(context);
 
     result = UIGraphicsGetImageFromCurrentImageContext();
     UIGraphicsEndImageContext();
+
     return result;
 }
 
