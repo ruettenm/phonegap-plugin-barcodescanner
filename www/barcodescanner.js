@@ -6,31 +6,30 @@
  * Copyright (c) 2011, IBM Corporation
  */
 
+var exec = cordova.require("cordova/exec");
 
-        var exec = cordova.require("cordova/exec");
+var scanInProgress = false;
 
-        var scanInProgress = false;
+/**
+ * Constructor.
+ *
+ * @returns {BarcodeScanner}
+ */
+function BarcodeScanner() {
 
-        /**
-         * Constructor.
-         *
-         * @returns {BarcodeScanner}
-         */
-        function BarcodeScanner() {
-
-            /**
-             * Encoding constants.
-             *
-             * @type Object
-             */
-            this.Encode = {
-                TEXT_TYPE: "TEXT_TYPE",
-                EMAIL_TYPE: "EMAIL_TYPE",
-                PHONE_TYPE: "PHONE_TYPE",
-                SMS_TYPE: "SMS_TYPE"
-                //  CONTACT_TYPE: "CONTACT_TYPE",  // TODO:  not implemented, requires passing a Bundle class from Javascript to Java
-                //  LOCATION_TYPE: "LOCATION_TYPE" // TODO:  not implemented, requires passing a Bundle class from Javascript to Java
-            };
+    /**
+     * Encoding constants.
+     *
+     * @type Object
+     */
+    this.Encode = {
+        TEXT_TYPE: "TEXT_TYPE",
+        EMAIL_TYPE: "EMAIL_TYPE",
+        PHONE_TYPE: "PHONE_TYPE",
+        SMS_TYPE: "SMS_TYPE"
+        //  CONTACT_TYPE: "CONTACT_TYPE",  // TODO:  not implemented, requires passing a Bundle class from Javascript to Java
+        //  LOCATION_TYPE: "LOCATION_TYPE" // TODO:  not implemented, requires passing a Bundle class from Javascript to Java
+    };
 
     /**
      * Barcode format constants, defined in ZXing library.
@@ -58,8 +57,8 @@
         "upc_A": 16384,
         "upc_E": 32768,
         "upc_EAN_EXTENSION": 65536
-        };
-  }
+    };
+}
 
 /**
  * Read code from scanner.
@@ -73,75 +72,74 @@
  * @param config
  */
 BarcodeScanner.prototype.scan = function (successCallback, errorCallback, config) {
+    if (config instanceof Array) {
+        // do nothing
+    } else {
+        if (typeof(config) === 'object') {
+            config = [ config ];
+        } else {
+            config = [];
+        }
+    }
 
-            if (config instanceof Array) {
-                // do nothing
-            } else {
-                if (typeof(config) === 'object') {
-                    config = [ config ];
-                } else {
-                    config = [];
-                }
-            }
-
-            if (errorCallback == null) {
-                errorCallback = function () {
-                };
-            }
-
-            if (typeof errorCallback != "function") {
-                console.log("BarcodeScanner.scan failure: failure parameter not a function");
-                return;
-            }
-
-            if (typeof successCallback != "function") {
-                console.log("BarcodeScanner.scan failure: success callback parameter must be a function");
-                return;
-            }
-
-            if (scanInProgress) {
-                errorCallback('Scan is already in progress');
-                return;
-            }
-
-            scanInProgress = true;
-
-            exec(
-                function(result) {
-                    scanInProgress = false;
-                    successCallback(result);
-                },
-                function(error) {
-                    scanInProgress = false;
-                    errorCallback(error);
-                },
-                'BarcodeScanner',
-                'scan',
-                config
-            );
+    if (errorCallback == null) {
+        errorCallback = function () {
         };
+    }
 
-        //-------------------------------------------------------------------
-        BarcodeScanner.prototype.encode = function (type, data, successCallback, errorCallback, options) {
-            if (errorCallback == null) {
-                errorCallback = function () {
-                };
-            }
+    if (typeof errorCallback != "function") {
+        console.log("BarcodeScanner.scan failure: failure parameter not a function");
+        return;
+    }
 
-            if (typeof errorCallback != "function") {
-                console.log("BarcodeScanner.encode failure: failure parameter not a function");
-                return;
-            }
+    if (typeof successCallback != "function") {
+        console.log("BarcodeScanner.scan failure: success callback parameter must be a function");
+        return;
+    }
 
-            if (typeof successCallback != "function") {
-                console.log("BarcodeScanner.encode failure: success callback parameter must be a function");
-                return;
-            }
+    if (scanInProgress) {
+        errorCallback('Scan is already in progress');
+        return;
+    }
 
-            exec(successCallback, errorCallback, 'BarcodeScanner', 'encode', [
-                {"type": type, "data": data, "options": options}
-            ]);
+    scanInProgress = true;
+
+    exec(
+        function(result) {
+            scanInProgress = false;
+            successCallback(result);
+        },
+        function(error) {
+            scanInProgress = false;
+            errorCallback(error);
+        },
+        'BarcodeScanner',
+        'scan',
+        config
+    );
+};
+
+//-------------------------------------------------------------------
+BarcodeScanner.prototype.encode = function (type, data, successCallback, errorCallback, options) {
+    if (errorCallback == null) {
+        errorCallback = function () {
         };
+    }
 
-        var barcodeScanner = new BarcodeScanner();
-        module.exports = barcodeScanner;
+    if (typeof errorCallback != "function") {
+        console.log("BarcodeScanner.encode failure: failure parameter not a function");
+        return;
+    }
+
+    if (typeof successCallback != "function") {
+        console.log("BarcodeScanner.encode failure: success callback parameter must be a function");
+        return;
+    }
+
+    exec(successCallback, errorCallback, 'BarcodeScanner', 'encode', [
+        {"type": type, "data": data, "options": options}
+    ]);
+};
+
+var barcodeScanner = new BarcodeScanner();
+module.exports = barcodeScanner;
