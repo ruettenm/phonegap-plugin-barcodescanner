@@ -51,6 +51,8 @@ public class BarcodeScanner extends CordovaPlugin {
     private static final String TORCH_ON = "torchOn";
     private static final String FORMATS = "formats";
     private static final String PROMPT = "prompt";
+    private static final String UPPER_VIEW_LABEL = "upperViewlabel";
+    private static final String LOWER_VIEW_LABEL = "lowerViewlabel";
     private static final String TEXT_TYPE = "TEXT_TYPE";
     private static final String EMAIL_TYPE = "EMAIL_TYPE";
     private static final String PHONE_TYPE = "PHONE_TYPE";
@@ -185,6 +187,12 @@ public class BarcodeScanner extends CordovaPlugin {
                         }
                         if (obj.has(PROMPT)) {
                             intentScan.putExtra(Intents.Scan.PROMPT_MESSAGE, obj.optString(PROMPT));
+                        }
+                        if (obj.has(UPPER_VIEW_LABEL)) {
+                            intentScan.putExtra(Intents.Scan.UPPER_VIEW_LABEL, obj.optString(UPPER_VIEW_LABEL));
+                        }
+                        if (obj.has(LOWER_VIEW_LABEL)) {
+                            intentScan.putExtra(Intents.Scan.LOWER_VIEW_LABEL, obj.optString(LOWER_VIEW_LABEL));
                         }
                         if (obj.has(ORIENTATION)) {
                             intentScan.putExtra(Intents.Scan.ORIENTATION_LOCK, obj.optString(ORIENTATION));

@@ -111,7 +111,9 @@ A full example could be:
       {
           resultDisplayDuration: 500, // Android, display scanned text for X ms. 0 suppresses it entirely, default 1500
           formats : "QR_CODE,PDF_417", // default: all but PDF_417 and RSS_EXPANDED
-          orientation : "landscape", // Android only (portrait|landscape), default unset so it rotates with the device
+          upperViewlabel: 'Center barcode on your card between the corners',
+          lowerViewlabel: 'Barcode will scan automatically.\nTry to avoid shadows and glare.',
+          cancelButtonlabel: 'Cancel', // only iOS
           disableAnimations : true
       }
    );
