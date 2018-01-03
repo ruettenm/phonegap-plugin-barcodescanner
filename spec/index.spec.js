@@ -30,18 +30,6 @@ describe('phonegap-plugin-barcodescanner', function () {
           expect(BarcodeScanner.scan).toBeDefined();
           expect(typeof BarcodeScanner.scan == 'function').toBe(true);
       });
-
-      it("should contain an encode function", function() {
-          expect(BarcodeScanner.encode).toBeDefined();
-          expect(typeof BarcodeScanner.encode == 'function').toBe(true);
-      });
-
-      it("should contain three DestinationType constants", function() {
-          expect(BarcodeScanner.Encode.TEXT_TYPE).toBe("TEXT_TYPE");
-          expect(BarcodeScanner.Encode.EMAIL_TYPE).toBe("EMAIL_TYPE");
-          expect(BarcodeScanner.Encode.PHONE_TYPE).toBe("PHONE_TYPE");
-          expect(BarcodeScanner.Encode.SMS_TYPE).toBe("SMS_TYPE");
-      });
     });
 
     describe('BarcodeScanner instance', function () {

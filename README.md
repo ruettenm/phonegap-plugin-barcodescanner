@@ -14,9 +14,6 @@ This requires phonegap 5.0+ ( current stable v3.0.0 )
 
     phonegap plugin add phonegap-plugin-barcodescanner
 
-Older versions of phonegap can still install via the __deprecated__ id ( stale v2.0.1 )
-
-    phonegap plugin add com.phonegap.plugins.barcodescanner
 
 It is also possible to install via repo url directly ( unstable )
 
@@ -26,9 +23,6 @@ It is also possible to install via repo url directly ( unstable )
 
 - Android
 - iOS
-- Windows (Windows/Windows Phone 8.1 and Windows 10)
-- Windows Phone 8
-- BlackBerry 10
 - Browser
 
 Note: the Android source for this project includes an Android Library Project.
@@ -99,52 +93,6 @@ Not by default, but supported if you pass in the "formats" option:
 * CODE_39
 * ITF
 
-### Windows
-
-* UPC_A
-* UPC_E
-* EAN_8
-* EAN_13
-* CODE_39
-* CODE_93
-* CODE_128
-* ITF
-* CODABAR
-* MSI
-* RSS14
-* QR_CODE
-* DATA_MATRIX
-* AZTEC
-* PDF417
-
-### Windows Phone 8
-
-* UPC_A
-* UPC_E
-* EAN_8
-* EAN_13
-* CODE_39
-* CODE_93
-* CODE_128
-* ITF
-* CODABAR
-* MSI
-* RSS14
-* QR_CODE
-* DATA_MATRIX
-* AZTEC
-* PDF417
-
-### BlackBerry 10
-* UPC_A
-* UPC_E
-* EAN_8
-* EAN_13
-* CODE_39
-* CODE_128
-* ITF
-* DATA_MATRIX
-* AZTEC
 
 `success` and `fail` are callback functions. Success is passed an object with data, type and cancelled properties. Data is the text representation of the barcode data, type is the type of barcode detected and cancelled is whether or not the user cancelled the scan.
 
@@ -161,16 +109,10 @@ A full example could be:
           alert("Scanning failed: " + error);
       },
       {
-          preferFrontCamera : true, // iOS and Android
-          showFlipCameraButton : true, // iOS and Android
-          showTorchButton : true, // iOS and Android
-          torchOn: true, // Android, launch with the torch switched on (if available)
-          prompt : "Place a barcode inside the scan area", // Android
           resultDisplayDuration: 500, // Android, display scanned text for X ms. 0 suppresses it entirely, default 1500
           formats : "QR_CODE,PDF_417", // default: all but PDF_417 and RSS_EXPANDED
           orientation : "landscape", // Android only (portrait|landscape), default unset so it rotates with the device
-          disableAnimations : true, // iOS
-          disableSuccessBeep: false // iOS
+          disableAnimations : true
       }
    );
 ```
@@ -197,29 +139,16 @@ A full example could be:
         );
 ```
 
-## Windows quirks ##
-
-* Windows implementation currently doesn't support encode functionality.
-
-* On Windows 10 desktop ensure that you have Windows Media Player and Media Feature pack installed.
-
-## Windows Phone 8 quirks ##
-Windows Phone 8 implementation currently doesn't support encode functionality.
-
-## BlackBerry 10 quirks
-BlackBerry 10 implementation currently doesn't support encode functionality.
-Cancelling a scan on BlackBerry 10 is done by touching the screen.
 
 ## Thanks on Github ##
 
 So many -- check out the original [iOS](https://github.com/phonegap/phonegap-plugins/tree/DEPRECATED/iOS/BarcodeScanner),  [Android](https://github.com/phonegap/phonegap-plugins/tree/DEPRECATED/Android/BarcodeScanner) and
-[BlackBerry 10](https://github.com/blackberry/WebWorks-Community-APIs/tree/master/BB10-Cordova/BarcodeScanner) repos.
 
 ## Licence ##
 
 The MIT License
 
-Copyright (c) 2010 Matt Kane
+Copyright (c) 2018 Matthias Rütten
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
