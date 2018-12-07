@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://gitlab.codecentric.de/open-source/phonegap-plugin-barcodescanner.git"
+    "url": "https://github.com/ruettenm/phonegap-plugin-barcodescanner.git"
   },
   "keywords": [
     "ecosystem:cordova",
@@ -31,9 +31,9 @@
   "author": "Matthias Rütten",
   "license": "MIT",
   "bugs": {
-    "url": "https://gitlab.codecentric.de/open-source/phonegap-plugin-barcodescanner/issues"
+    "url": "https://github.com/ruettenm/phonegap-plugin-barcodescanner/issues"
   },
-  "homepage": "https://gitlab.codecentric.de/open-source/phonegap-plugin-barcodescanner",
+  "homepage": "https://github.com/ruettenm/phonegap-plugin-barcodescanner",
   "scripts": {
     "test": "jasmine-node --color spec"
   },
