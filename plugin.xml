@@ -50,8 +50,9 @@
       <uses-feature android:name="android.hardware.camera" android:required="true"/>
     </config-file>
     <framework src="src/android/barcodescanner.gradle" custom="true" type="gradleReference"/>
-    <resource-file src="src/android/barcodescanner-release.aar" target="libs/barcodescanner.aar"/>
-    <dependency id="cordova-plugin-compat" version="^1.0.0"/>
+    <framework src="com.android.support:support-v4:$ANDROID_SUPPORT_V4_VERSION"/>
+    <lib-file src="src/android/barcodescanner-release-2.1.5.aar"/>
+    <preference name="ANDROID_SUPPORT_V4_VERSION" default="27.+"/>
   </platform>
   <platform name="browser">
     <config-file target="config.xml" parent="/*">
